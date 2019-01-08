@@ -7,69 +7,11 @@
   <meta name="viewport" content="width=device-width">
   <title>JS Bin</title>
 </head>
-<body><center>
+<body>
 <div id="DISPX" style="height:200px; width:200px; background:black;color:white">
+  HelloWorld
 </div>
-<canvas id="myCanvas" style="height:1000px; width:1000px;"></canvas>
-<div id="my_mm" style="height:100000mm;width:0px"></div>
 
-<div id="DISPX2" style="height:1em; width:1em; background:black; color:black">
-</div> 
-</center>
 </body>
- <script>
- 	//window.devicePixelRatio=1;
-var mmpp = function(){   
-   return 100000/document.querySelector('#my_mm').offsetHeight; //JQuery returns sizes in PX
- };
-var pp100000mm = function(){   
-   return document.querySelector('#my_mm').offsetHeight; //JQuery returns sizes in PX
- };
-console.log(mmpp(),window.devicePixelRatio)
-
-document.querySelector('#DISPX').innerHTML="mm/p:<br/>"+mmpp().toFixed(10)+"<br/>pp100000mm:<br/>"+pp100000mm()+"<br/> 200 X 200 px<br/>pxRatio:"+window.devicePixelRatio;
-//console.log(pxTomm(1))
-
-
-let multiplier =2;
-let canvas = document.getElementById("myCanvas");
-//接著指定繪圖方式
-function setupCanvas(canvas,doscale=false) {
-
-  // Get the size of the canvas in CSS pixels.
-  var rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width*multiplier;
-  canvas.height = rect.height*multiplier;
-  if(!doscale)return canvas.getContext('2d');
-  // Get the device pixel ratio, falling back to 1.
-  var dpr = window.devicePixelRatio || 1;
-  // Give the canvas pixel dimensions of their CSS
-  // size * the device pixel ratio.
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  var ctx = canvas.getContext('2d');
-  // Scale all drawing operations by the dpr, so you
-  // don't have to worry about the difference.
-  ctx.scale(dpr, dpr);
-  return ctx;
-}
-let ctx = setupCanvas(canvas);
-ctx.fillStyle = "rgba("+255+","+0+","+0+","+(255/255)+")";
-multiplier/=window.devicePixelRatio;
-
-
-let size=1;
-for(let i=0;i<500;i+=2)
-{
-  for(let j=0;j<500;j+=2)
-  {
-
-    ctx.fillRect( j*size*multiplier, i*size*multiplier, size*multiplier, size*multiplier );
-
-  }
-
-}
-
-//ctx.fillRect( 15.1, 5, 5, 5 );
-  </script>
+ 
 </html>
