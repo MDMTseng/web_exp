@@ -9,6 +9,8 @@
 </head>
 <body  style="height:100%; width:100%">
   <canvas id="myCanvas" style="height:100%; width:100%"></canvas>
+  <input type="button" value="rect" onclick="drawRect();" />
+  <input type="button" value="circle" onclick="drawCircle();" />
 
 </body>
  <script>
@@ -41,7 +43,7 @@ function setupCanvas(canvas,doscale=false) {
   return ctx;
 }
 let ctx = setupCanvas(canvas);
-ctx.fillStyle = "rgba("+255+","+0+","+0+","+(255/255)+")";
+
 
 function drawPattern(ctx,width,height,type="rect",size=20)
 {
@@ -50,9 +52,9 @@ function drawPattern(ctx,width,height,type="rect",size=20)
   {
     case "rect":
     {
-      for(let i=0;i<height;i+=2*size)
+      for(let i=size;i<height;i+=2*size)
       {
-        for(let j=0;j<width;j+=2*size)
+        for(let j=size;j<width;j+=2*size)
         {
 
           ctx.fillRect( j, i, size, size );
@@ -79,8 +81,22 @@ function drawPattern(ctx,width,height,type="rect",size=20)
   }
 }
 
-drawPattern(ctx,canvas.width,canvas.height,"circle");
-
+function drawRect()
+{
+    
+  ctx.fillStyle = "rgba("+255+","+0+","+0+","+(255/255)+")";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "rgba("+0+","+0+","+0+","+(255/255)+")";
+  drawPattern(ctx,canvas.width,canvas.height,"rect");
+}
+function drawCircle()
+{
+  ctx.fillStyle = "rgba("+255+","+0+","+0+","+(255/255)+")";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "rgba("+0+","+0+","+0+","+(255/255)+")";
+  drawPattern(ctx,canvas.width,canvas.height,"circle");
+}
+drawCircle();
 //ctx.fillRect( 15.1, 5, 5, 5 );
   </script>
 </html>
