@@ -1,0 +1,86 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>JS Bin</title>
+</head>
+<body  style="height:100%; width:100%">
+  <canvas id="myCanvas" style="height:100%; width:100%"></canvas>
+
+</body>
+ <script>
+
+
+let canvas = document.getElementById("myCanvas");
+//接著指定繪圖方式
+function setupCanvas(canvas,doscale=false) {
+
+  // Get the size of the canvas in CSS pixels.
+  var rect = canvas.getBoundingClientRect();
+  let multiplier =2;
+  canvas.width = rect.width*multiplier;
+  canvas.height = rect.height*multiplier;
+  let ctx = canvas.getContext('2d');
+  if(!doscale)
+  {
+    ctx.scale(multiplier/window.devicePixelRatio, multiplier/window.devicePixelRatio);
+    return ctx;
+  }
+  // Get the device pixel ratio, falling back to 1.
+  var dpr = window.devicePixelRatio || 1;
+  // Give the canvas pixel dimensions of their CSS
+  // size * the device pixel ratio.
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  // Scale all drawing operations by the dpr, so you
+  // don't have to worry about the difference.
+  ctx.scale(dpr, dpr);
+  return ctx;
+}
+let ctx = setupCanvas(canvas);
+ctx.fillStyle = "rgba("+255+","+0+","+0+","+(255/255)+")";
+
+function drawPattern(ctx,width,height,type="rect",size=20)
+{
+  console.log(width,height);
+  switch(type)
+  {
+    case "rect":
+    {
+      for(let i=0;i<height;i+=2*size)
+      {
+        for(let j=0;j<width;j+=2*size)
+        {
+
+          ctx.fillRect( j, i, size, size );
+
+        }
+      }
+    }
+    break;
+    case "circle":
+    {
+      for(let i=size;i<height;i+=2*size)
+      {
+        for(let j=size;j<width;j+=2*size)
+        {
+          ctx.beginPath();
+          ctx.arc(j, i, size/2, 0, 2 * Math.PI);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+    }
+    break;
+
+  }
+}
+
+drawPattern(ctx,canvas.width,canvas.height,"circle");
+
+//ctx.fillRect( 15.1, 5, 5, 5 );
+  </script>
+</html>
