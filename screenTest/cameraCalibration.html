@@ -11,12 +11,14 @@
   <canvas id="myCanvas" style="height:100%; width:100%"></canvas>
   <input type="button" value="rect" onclick="drawRect();" />
   <input type="button" value="circle" onclick="drawCircle();" />
-  <div>01232019_v1</div>
+  <div id="infoSec"></div>
 
 </body>
  <script>
 
 
+let infoSec = document.getElementById("infoSec");
+infoSec.innerHTML="01232019_v2 "+window.devicePixelRatio;
 let canvas = document.getElementById("myCanvas");
 //接著指定繪圖方式
 function setupCanvas(canvas,doscale=false) {
