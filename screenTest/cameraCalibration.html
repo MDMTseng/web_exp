@@ -11,6 +11,7 @@
   <canvas id="myCanvas" style="height:100%; width:100%"></canvas>
   <input type="button" value="rect" onclick="drawRect();" />
   <input type="button" value="circle" onclick="drawCircle();" />
+  <div>01232019_v1</div>
 
 </body>
  <script>
@@ -22,7 +23,7 @@ function setupCanvas(canvas,doscale=false) {
 
   // Get the size of the canvas in CSS pixels.
   var rect = canvas.getBoundingClientRect();
-  let multiplier =2;
+  let multiplier =10;
   canvas.width = rect.width*multiplier;
   canvas.height = rect.height*multiplier;
   let ctx = canvas.getContext('2d');
@@ -81,7 +82,9 @@ function drawPattern(ctx,width,height,type="rect",size=20)
   }
 }
 
-function drawRect(size=20)
+let defaultSize=5
+
+function drawRect(size=defaultSize)
 {
     
   ctx.fillStyle = "rgba("+255+","+0+","+0+","+(255/255)+")";
@@ -89,7 +92,7 @@ function drawRect(size=20)
   ctx.fillStyle = "rgba("+0+","+0+","+0+","+(255/255)+")";
   drawPattern(ctx,canvas.width,canvas.height,"rect",size);
 }
-function drawCircle(size=20)
+function drawCircle(size=defaultSize)
 {
   ctx.fillStyle = "rgba("+255+","+0+","+0+","+(255/255)+")";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
