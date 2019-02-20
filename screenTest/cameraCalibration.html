@@ -11,6 +11,9 @@
   <canvas id="myCanvas" style="height:100%; width:100%"></canvas>
   <input type="button" value="rect" onclick="drawRect();" />
   <input type="button" value="circle" onclick="drawCircle();" />
+  <input type="button" value="chess" onclick="drawChess();" />
+  <input type="button" value="^" onclick="sizeUp();" />
+  <input type="button" value="V" onclick="sizeDown();" />
   <div id="infoSec"></div>
 
 </body>
@@ -80,12 +83,26 @@ function drawPattern(ctx,width,height,type="rect",size=20)
       }
     }
     break;
+    case "chess":
+    {
+      let line_count=0;
+      for(let i=size;i<height;i+=size)
+      {
+        let padding=(line_count%2==0)?0:size;
+        line_count++;
+        for(let j=size+padding;j<width;j+=2*size)
+        {
+          ctx.fillRect( j, i, size, size );
+        }
+      }
+    }
+    break;
 
   }
 }
 
 let defaultSize=5
-
+let drawMethod;
 function drawRect(size=defaultSize)
 {
     
@@ -93,6 +110,7 @@ function drawRect(size=defaultSize)
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "rgba("+0+","+0+","+0+","+(255/255)+")";
   drawPattern(ctx,canvas.width,canvas.height,"rect",size);
+  drawMethod=drawRect;
 }
 function drawCircle(size=defaultSize)
 {
@@ -100,8 +118,38 @@ function drawCircle(size=defaultSize)
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "rgba("+0+","+0+","+0+","+(255/255)+")";
   drawPattern(ctx,canvas.width,canvas.height,"circle",size);
+  drawMethod=drawCircle;
 }
-drawRect(5);
+function drawChess(size=defaultSize)
+{
+  ctx.fillStyle = "rgba("+255+","+0+","+0+","+(255/255)+")";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "rgba("+0+","+0+","+0+","+(255/255)+")";
+  drawPattern(ctx,canvas.width,canvas.height,"chess",size);
+  drawMethod=drawChess;
+}
+drawMethod = drawChess;
+function updateSizeText()
+{
+  document.querySelector('#infoSec').innerHTML=defaultSize+"px"
+}
+
+function sizeUp()
+{
+  defaultSize*=2;
+  updateSizeText();
+  drawMethod();
+}
+function sizeDown()
+{
+  defaultSize/=2;
+  if(defaultSize<5)defaultSize=5;
+  updateSizeText();
+  drawMethod();
+}
+
+drawMethod();
+updateSizeText();
 //ctx.fillRect( 15.1, 5, 5, 5 );
   </script>
 </html>
