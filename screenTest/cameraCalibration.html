@@ -14,6 +14,14 @@
   <input type="button" value="chess" onclick="drawChess();" />
   <input type="button" value="^" onclick="sizeUp();" />
   <input type="button" value="V" onclick="sizeDown();" />
+
+  <input type="button" value="R" onclick="BGBolor(255,0,0);" />
+  <input type="button" value="G" onclick="BGBolor(0,255,0);" />
+  <input type="button" value="B" onclick="BGBolor(0,0,255);" />
+  <input type="button" value="W" onclick="BGBolor(255,255,255);" />
+
+
+  
   <div id="infoSec"></div>
 
 </body>
@@ -103,10 +111,11 @@ function drawPattern(ctx,width,height,type="rect",size=20)
 
 let defaultSize=5
 let drawMethod;
+let BGColor =  "rgba("+255+","+0+","+0+","+(255/255)+")";
 function drawRect(size=defaultSize)
 {
     
-  ctx.fillStyle = "rgba("+255+","+0+","+0+","+(255/255)+")";
+  ctx.fillStyle =BGColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "rgba("+0+","+0+","+0+","+(255/255)+")";
   drawPattern(ctx,canvas.width,canvas.height,"rect",size);
@@ -114,7 +123,7 @@ function drawRect(size=defaultSize)
 }
 function drawCircle(size=defaultSize)
 {
-  ctx.fillStyle = "rgba("+255+","+0+","+0+","+(255/255)+")";
+  ctx.fillStyle = BGColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "rgba("+0+","+0+","+0+","+(255/255)+")";
   drawPattern(ctx,canvas.width,canvas.height,"circle",size);
@@ -122,7 +131,7 @@ function drawCircle(size=defaultSize)
 }
 function drawChess(size=defaultSize)
 {
-  ctx.fillStyle = "rgba("+255+","+0+","+0+","+(255/255)+")";
+  ctx.fillStyle = BGColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "rgba("+0+","+0+","+0+","+(255/255)+")";
   drawPattern(ctx,canvas.width,canvas.height,"chess",size);
@@ -148,6 +157,13 @@ function sizeDown()
   drawMethod();
 }
 
+function BGBolor(R=255,G=0,B=0)
+{
+  BGColor =  "rgba("+R+","+G+","+B+","+(255/255)+")";
+  drawMethod();
+}
+
+BGBolor(255,0,0);
 drawMethod();
 updateSizeText();
 //ctx.fillRect( 15.1, 5, 5, 5 );
