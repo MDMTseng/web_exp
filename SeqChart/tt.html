@@ -1,0 +1,121 @@
+
+
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content='text/html;charset=utf-8' http-equiv='Content-Type'>
+    <script src='../lib/mscgen-inpage.js' defer>
+    </script>
+  </head>
+  <body>
+    <button type="button" onclick="dd()">Click Me!</button>
+    <a id="link" download></a>
+    <pre onclick="dd()" class='code msgenny mscgen_js' data-language='msgenny' data-named-style='basic' id="svg_mscgen">
+/*
+ * ACME protocol - Certificate request
+ *
+ * source: https://github.com/letsencrypt/anvil
+ */
+wordwraparcs=1, hscale=1;
+
+
+CompUnit : "CompUnit",
+Cam1 : "Cam1",
+Cam2 : "Cam2",
+Gate : "Gate",
+CtrlUnit : "CtrlUnit",
+cat1 : "cat1",
+cat2 : "cat2",
+catNA : "catNA";
+
+
+
+Gate => CtrlUnit:  Trigger;
+
+CtrlUnit rbox CtrlUnit: Add tracking item with current motor pulse;
+CtrlUnit => CompUnit:  Notify;
+
+
+CtrlUnit rbox CtrlUnit: Wait for Cam1 pulse;
+
+CtrlUnit => Cam1:  trigger;
+CtrlUnit rbox CtrlUnit: Wait for Cam2 pulse;
+CtrlUnit => Cam2:  trigger;
+Cam1=>CompUnit: Img1;
+CompUnit rbox CompUnit: Compute Img1 result;
+CompUnit=>CtrlUnit:result for Img1;
+Cam2=>CompUnit: Img2;
+CompUnit rbox CompUnit: Compute Img2 result;
+
+CompUnit=>CtrlUnit:result for Img2;
+
+
+CtrlUnit rbox CtrlUnit: collect results and decide category;
+
+
+CtrlUnit rbox CtrlUnit: Wait for Cam1 pulse;
+
+
+CtrlUnit alt catNA : "" {
+  --- : "Cat1";
+  
+	CtrlUnit rbox CtrlUnit: Wait for Cat1 pulse;
+	CtrlUnit => cat1:  trigger;
+    
+  --- : "Cat2";
+	CtrlUnit rbox CtrlUnit: Wait for Cat2 pulse;
+	CtrlUnit => cat2:  trigger;
+    
+  --- : "Else";
+	CtrlUnit rbox CtrlUnit: Wait for catNA pulse;
+	CtrlUnit => catNA:  trigger;
+};
+    </pre>
+
+    
+  </body>
+
+
+  <script>
+      function dd_EleConvUrl(ele)
+      {
+        //var svg = document.getElementById("svg_mscgen");
+        //get svg source.
+        var serializer = new XMLSerializer();
+        var source = serializer.serializeToString(ele);
+
+        //add name spaces.
+        if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+            source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+        }
+        if(!source.match(/^<svg[^>]+"http\:\/\/www\.w3\.org\/1999\/xlink"/)){
+            source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+        }
+
+        //add xml declaration
+        source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+
+        //convert svg source to URI data scheme.
+        var url = "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(source);
+        return url;
+      }
+
+      function dd()
+      {
+
+
+        var svg = document.querySelector("#svg_mscgen > #mscgenjssvg_mscgen");
+
+        let url = dd_EleConvUrl(svg);
+        let linkDownload  = document.getElementById("link");
+
+        linkDownload.href = url;
+        linkDownload.click();
+        //you can download svg file by right click menu.
+
+      }
+
+
+  </script>
+</html>
