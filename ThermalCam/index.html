@@ -161,7 +161,7 @@
     }
     
 
-    let warnAudioPlay=true;
+    let warnAudioPlay=false;
     let frame_counter = 0;
     let connection=undefined;
     let warnFrame=undefined;
@@ -230,13 +230,14 @@
         for (let i = 0; i < tempValues.length; i += 1) {
 
             let drawStroke=false;
+            
             if(tempValues[i]>37.5)
             {
               
-              if(warnFrame===undefined)
+              if(warnAudioPlay && warnFrame===undefined)
               {
                 warnFrame=frame_counter;
-                if(warnAudioPlay)warn_audio.play();
+                warn_audio.play();
               }
               c2_context.strokeStyle = "#00FFFF";
               drawStroke=true;
@@ -338,6 +339,8 @@
         input_IP_DOM.disabled=
         start_btn_DOM.disabled=false;
         connection=undefined;
+        
+        warn_audio.pause();
       };
       // Log errors
       connection.onerror = function (error) {
@@ -345,6 +348,7 @@
         input_IP_DOM.disabled=
         start_btn_DOM.disabled=false;
         connection=undefined;
+        warn_audio.pause();
       };
       connection.onmessage=onmessage;
     }
@@ -364,6 +368,14 @@
     function flipX() {
       xflip=!xflip;
     }
+
+    function SOUND_toggle()
+    {
+      warnAudioPlay=!warnAudioPlay;
+      warn_audio.pause();
+      
+      document.getElementById('sound_btn').innerText = "SOUND:"+(warnAudioPlay?"ON":"OFF");
+    }
     </script>
 </head>
 <body>
@@ -372,9 +384,10 @@
     <button class="cButton" onclick='flipX()'>Flip X</button>
     <button class="cButton" onclick='rotate()'>ROTATE</button>
     <br/>
+    <button  class="cButton" onclick='ws_stop()'  id="stop_btn">STOP</button>
+    <button  class="cButton" onclick='SOUND_toggle()'  id="sound_btn">SOUND:OFF</button>
+    <br/>
     <input type="text" id="input_IP" name="input_IP" value="thermal.local:81">
     <button class="cButton" onclick='ws_start()'  id="start_btn">START</button>
-    <br/>
-    <button  class="cButton" onclick='ws_stop()'  id="start_btn">STOP</button>
 </body>
 </html>
