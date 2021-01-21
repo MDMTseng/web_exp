@@ -153,14 +153,16 @@
 
     function numberFormat(num)
     {
-      let x100=Math.round(num*100);
-      let point=(x100%100)+"";
+      let pp=1;
+      let points=Math.pow(10,pp);
+      let xK=Math.round(num*points);
+      let point=(xK%points)+"";
       
-      let dig=Math.floor(x100/100)+"";
-      return stringPadZero(dig,2)+"."+stringPadZero(point,2);
+      let dig=Math.floor(xK/points)+"";
+      return stringPadZero(dig,2)+"."+stringPadZero(point,pp);
     }
     
-
+    let mixPix=undefined;
     let warnAudioPlay=false;
     let frame_counter = 0;
     let connection=undefined;
@@ -168,6 +170,7 @@
     let pixSize=5;
     let xflip=false;
     let rotateIdx=0;
+    let filterMode=0;
     // Log messages from the server
     let onmessage = function (e) {
         if (e.data.length < 100) {
@@ -175,11 +178,82 @@
         }
         frame_counter += 1;
         const values_raw = new Int16Array(e.data);
+        if(mixPix===undefined)
+        {
+          mixPix= new Array(values_raw.length);
+          values_raw.forEach((mP,idx) => {
+            mixPix[idx]=1.0*mP;
+          });
+          
+          
+        }
+        else
+        {
+          switch(filterMode)
+          {
+            case 0:
+              values_raw.forEach((mP,idx) => {
+                mixPix[idx]=1.0*mP;
+              });
+              break;
+            
+            case 1:
+              mixPix.forEach((mP,idx) => {
+                let diff = values_raw[idx]-mP;
+                if(diff<0)diff=-diff;
+                diff-=50;
+                let approachV=diff/100;
+                if(approachV>1)approachV=1;
+                if(approachV<0.2)approachV=0.2;
+                mixPix[idx]+=approachV*(values_raw[idx]-mP);
+              });
+              break;
+            
+            case 2:
+              
+              mixPix.forEach((mP,idx) => {
+                if(values_raw[idx]>mP)
+                {
+                  mixPix[idx]=values_raw[idx];
+                  return;
+                }
+                let approachV=0.05;
+                mixPix[idx]+=approachV*(values_raw[idx]-mP);
+              });
 
-        const values=values_raw.map(v=>((v/100.0)*36.7/30));
+              break;
+
+            case 3:
+              
+              
+              let rmse = Math.sqrt(
+                mixPix.reduce((s,v,idx)=>
+                  s+(v-values_raw[idx])*(v-values_raw[idx]),0)/mixPix.length
+                  );
+              
+              rmse-=70;
+
+              rmse/=70;
+
+              if(rmse>1)rmse=1;
+              if(rmse<0.1)rmse=0.1;
+              let approachV=rmse;
+              mixPix.forEach((mP,idx) => {
+                let tmpap=approachV;
+                if(values_raw[idx]>mP)
+                {
+                  tmpap=1;
+                }
+                mixPix[idx]+=tmpap*(values_raw[idx]-mP);
+              });
+              break;
+          }
+        }
+
+        const values=mixPix.map(v=>((v/100.0)*36.4/30));
         const tempValues = interpolateData(values, 32);
         const sortedValues = values.slice().sort();
-        
+        // console.log(values);
         let avgHighTemp = 0;
         let avgLowTemp = 0;
         
@@ -200,7 +274,7 @@
         avgLowTemp = avgLowTemp / lowCount;
         
         document.getElementById('temperature').innerText = 
-          'High: ' + numberFormat(avgHighTemp) + ' C | Low: ' +  numberFormat(avgLowTemp)  + 
+          'H: ' + numberFormat(avgHighTemp) + ' C | L: ' +  numberFormat(avgLowTemp)  + 
           ' C \n AVG: ' + numberFormat(avgTemp) + ' C';
     
 
@@ -304,7 +378,7 @@
               c2_context.strokeRect(xPos*pixSize, yPos*pixSize, pixSize, pixSize);
         }
 
-        let drawBlockH=5;
+        let drawBlockH=20;
         for (let i = 0; i < c2.height; i += drawBlockH)
         {
           
@@ -312,6 +386,12 @@
           c2_context.fillRect(c2.width-heatMapBarW, i, heatMapBarW, drawBlockH);
         }
         
+        for (let i = 0; i < c2.height; i += drawBlockH*5)
+        {
+          
+          c2_context.fillStyle = heatMapColorforValue((c2.height-i)/c2.height);
+          c2_context.fillRect(c2.width-heatMapBarW, i, heatMapBarW, drawBlockH);
+        }
         c2_context.fillStyle = "#FFF";
         c2_context.fillText(high, c2.width-10,20);
         c2_context.fillText(low, c2.width-10,c2.height-10);
@@ -365,6 +445,13 @@
     function rotate() {
       rotateIdx=(rotateIdx+1)%4;
     }
+    function FilterMode_toggle() {
+      filterMode=(filterMode+1)%4;
+      
+      document.getElementById('filterMode_btn').innerText = "Filter:"+filterMode;
+    }
+
+    
     function flipX() {
       xflip=!xflip;
     }
@@ -386,6 +473,7 @@
     <br/>
     <button  class="cButton" onclick='ws_stop()'  id="stop_btn">STOP</button>
     <button  class="cButton" onclick='SOUND_toggle()'  id="sound_btn">SOUND:OFF</button>
+    <button  class="cButton" onclick='FilterMode_toggle()'  id="filterMode_btn">Filter:0</button>
     <br/>
     <input type="text" id="input_IP" name="input_IP" value="thermal.local:81">
     <button class="cButton" onclick='ws_start()'  id="start_btn">START</button>
