@@ -11,28 +11,50 @@
             padding: 0;
         }
 
-        .flipButton {
-            width: 470px;
-            height: 50px;
+        .cButton {
+            width: 80px;
+            height: 20px;
+            margin:2px;
         }
 
         #temperature {
             padding: 5px;
             width: 470px;
-            font-size: 1.8em;
-            text-align: center;
+            font-size: 1.2em;
+            text-align: left;
         }
     </style>
     <script>
     var warn_audio = new Audio('warningSFX.mp3');
-    let startX = 0;
-    let moveX = 10;
-    let startY = 0;
-    let moveY = 10;
-    const positive = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
-    const negative = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
-    
-    function heatMapColorforValue(value, avgLowTemp, avgHighTemp) {
+
+    function heatMapColorforValue(value,low=0,middle=0.5,high=1){
+      if(value>high)value=high;
+      if(value<low)value=low;
+      var ratio;
+      if(value<middle)
+        ratio = 0.5*(value-low)/(middle-low);
+      else
+        ratio = 0.5+0.5*(value-middle)/(high-middle);
+
+      // var h = ((ratio-0.5)*1.2)+0.5;
+      // if(h>1)h=1;
+      // if(h<0)h=0;
+      var h = ((0.5-ratio)*1.2)+0.5;
+      if(h>1)h=1;
+      if(h<0)h=0;
+
+      h=h*240;
+      var s = 100;
+      var l = 10+50*(Math.sqrt(Math.sin(ratio*Math.PI)));
+
+
+      return "hsl(" + h + ","+s+"%,"+l+"%)";
+    }
+
+
+    function heatMapColorforValue2(value, avgLowTemp, avgHighTemp) {
+        if(value>avgHighTemp)value=avgHighTemp;
+        if(value<avgLowTemp)value=avgLowTemp;
         let h;
         let l = 50;
         let s;
@@ -82,29 +104,6 @@
         return result;
     }
 
-    function ConvertNumber(number, format){
-      var tail=format.lastIndexOf('.');number=number.toString();
-      tail=tail>-1?format.substr(tail):'';
-      if(tail.length>0){if(tail.charAt(1)=='#'){
-          tail=number.substr(number.lastIndexOf('.'),tail.length);
-      }}
-      number=number.replace(/\..*|[^0-9]/g,'').split('');
-      format=format.replace(/\..*/g,'').split('');
-      for(var i=format.length-1;i>-1;i--){
-          if(format[i]=='#'){format[i]=number.pop()}
-      }
-      return number.join('')+format.join('')+tail;
-    }
-
-    // Examples
-    // ConvertNumber(1234,'#,###') === 1,234
-    // ConvertNumber(1234,'#,###.00') === 1,234.00
-    // ConvertNumber(1234,',###.00') === 1,234.00
-    // ConvertNumber(1234.4575,',###.##') === 1,234.45
-    // ConvertNumber(1234567890.4575,',###,###,###.##') === 1,234,567,890.45
-    // ConvertNumber(123.4575,',#,#.##') === 1,2,3.45
-    // ConvertNumber(123456.4575,'-#-#.##') === 1234-5-6.45
-    // ConvertNumber(1234567.4575,' ## ###.##') === 12 34 567.45
     function interpolateData(input, rowLength) {
         const output = [];
         let rowNum = 1;
@@ -143,16 +142,32 @@
         return output;
     }
 
+    function stringPadZero(str,zeros)
+    {
+      while(str.length<zeros)
+      {
+        str="0"+str;
+      }
+      return str;
+    }
 
-    let avgHighTemp = 0;
-    let avgLowTemp = 0;
-    let highTarget = -100;
-    let lowTarget = 200;
-    let high = -100;
-    let low = 200;
+    function numberFormat(num)
+    {
+      let x100=Math.round(num*100);
+      let point=(x100%100)+"";
+      
+      let dig=Math.floor(x100/100)+"";
+      return stringPadZero(dig,2)+"."+stringPadZero(point,2);
+    }
+    
+
+    let warnAudioPlay=true;
     let frame_counter = 0;
     let connection=undefined;
     let warnFrame=undefined;
+    let pixSize=5;
+    let xflip=false;
+    let rotateIdx=0;
     // Log messages from the server
     let onmessage = function (e) {
         if (e.data.length < 100) {
@@ -161,78 +176,59 @@
         frame_counter += 1;
         const values_raw = new Int16Array(e.data);
 
-        const values=values_raw.map(v=>((v/100.0)*36.5/30));
+        const values=values_raw.map(v=>((v/100.0)*36.7/30));
         const tempValues = interpolateData(values, 32);
         const sortedValues = values.slice().sort();
-        avgHighTemp = 0;
+        
+        let avgHighTemp = 0;
+        let avgLowTemp = 0;
         
         let avgTemp = sortedValues.reduce((s,v)=>s+v,0)/sortedValues.length;
-        for (let w = sortedValues.length - 3; w > sortedValues.length - 10; w -= 1) {
+
+        let highCount=4;
+        for (let w = sortedValues.length - 1; w > sortedValues.length - 1-highCount; w -= 1) {
             avgHighTemp += sortedValues[w];
         }
-        avgHighTemp = avgHighTemp / 7;
+        avgHighTemp = avgHighTemp / highCount;
 
         avgLowTemp = 0;
-        for (let w = 4; w < 24; w += 1) {
-            avgLowTemp += sortedValues[w];
-        }
-        avgLowTemp = avgLowTemp / 20;
-        if (frame_counter >= 20) {
-            let avgHighTempC = avgHighTemp;
-            avgHighTempC = parseInt(avgHighTempC * 10) / 10;
-            
-            let avgTempC = parseInt(avgTemp * 10) / 10;
-            let avgLowTempC = avgLowTemp;
-            avgLowTempC = parseInt(avgLowTempC * 10) / 10;
-            document.getElementById('temperature').innerText = 'High: ' + avgHighTempC + ' C | Low: ' + avgLowTempC + ' C \n AVG: ' + avgTempC + ' C';
-            highTarget = -100;
-            lowTarget = 200;
-            //console.log(JSON.stringify(tempValues));
-            for (let i = 0; i < values.length; i += 1) {
-                if (values[i] < 120 && values[i] > highTarget) {
-                    highTarget = parseInt(values[i]);
-                }
-                if (values[i] < lowTarget) {
-                    lowTarget = parseInt(values[i]);
-                }
-            }
-            if (highTarget - lowTarget < 10) {
-                highTarget += 5;
-            }
-            // high += 2;
-            lowTarget += 1;
-            // counter = 0;
-            // return;
-        }
-        // if (Math.abs(low - avgLowTemp) < 1.5) {
-        //     // do nothing
-        // } else if (low === 200) {
-        //     low = avgLowTemp;
-        // } else if (low > avgLowTemp) {
-        //     low -= 1;
-        // } else if (low < avgLowTemp) {
-        //     low += 1;
-        // }
-        // if (Math.abs(high - avgHighTemp) < 1.5) {
-        //     // do nothing
-        // } else if (high === -100) {
-        //     high = avgHighTemp;
-        // } else if (high > avgHighTemp) {
-        //     high -= 1;
-        // } else if (high < avgHighTemp) {
-        //     high += 1;
-        // }
 
-        high=40;
-        low=25;
+        let lowCount=20;
+        for (let w = 0; w < lowCount; w += 1) {
+            avgLowTemp += sortedValues[w+4];
+        }
+        avgLowTemp = avgLowTemp / lowCount;
+        
+        document.getElementById('temperature').innerText = 
+          'High: ' + numberFormat(avgHighTemp) + ' C | Low: ' +  numberFormat(avgLowTemp)  + 
+          ' C \n AVG: ' + numberFormat(avgTemp) + ' C';
+    
+
+        let high = 40;
+        let low = 20;
 
         var c2 = document.getElementById('myCanvas');
         var c2_context = c2.getContext('2d');
-        let xPos = startX;
-        let yPos = startY;
+        c2_context.font = "40pt Arial";
+        let heatMapBarW=10;
+        switch(rotateIdx)
+        {
+          case 0:
+          case 2:
+            c2.height=(64*pixSize)|0;
+            c2.width=((48*pixSize)|0)+heatMapBarW;
+          break;
+          case 1:
+          case 3:
+
+            c2.width=((64*pixSize)|0)+heatMapBarW;
+            c2.height=(48*pixSize)|0;
+          break;
+
+        }
+
         for (let i = 0; i < tempValues.length; i += 1) {
 
-            let value = ((tempValues[i] - low) / (high - low)) * 100;
             let drawStroke=false;
             if(tempValues[i]>37.5)
             {
@@ -240,7 +236,7 @@
               if(warnFrame===undefined)
               {
                 warnFrame=frame_counter;
-                warn_audio.play();
+                if(warnAudioPlay)warn_audio.play();
               }
               c2_context.strokeStyle = "#00FFFF";
               drawStroke=true;
@@ -256,16 +252,69 @@
                 }
               }
             }
-            c2_context.fillStyle = heatMapColorforValue(value, low, high);
-            c2_context.fillRect(yPos, xPos, 10, 10);
-            if(drawStroke)
-              c2_context.strokeRect(yPos, xPos, 10, 10);
-            yPos += moveY;
-            if (i > 0 && (i + 1) % 63 === 0) {
-                xPos += moveX;
-                yPos = startY;
+            let value = (tempValues[i] - low) / (high - low);
+            c2_context.fillStyle = heatMapColorforValue(value);
+            // c2_context.fillStyle = heatMapColorforValue2(tempValues[i],low,high);
+
+            
+
+            let xpos = (i/63)| 0;
+            let ypos = i%63;
+            let xPos;
+            let yPos;
+            switch(rotateIdx)
+            {
+              case 0:
+                xPos=xpos;
+                yPos= ypos;
+              break;
+              case 1:
+                xPos=ypos;
+                yPos=46-xpos;
+              break;
+              case 2:
+                xPos=46-xpos;
+                yPos=62-ypos;
+              break;
+              case 3:
+                yPos=xpos;
+                xPos=62-ypos;
+              break;
+
             }
+            // console.log(xPos,yPos);
+            if(xflip==true)
+            {
+              switch(rotateIdx)
+              {
+                case 0:
+                case 2:
+                  xPos=46-xPos;
+                break;
+                case 1:
+                case 3:
+                  xPos=62-xPos;
+                break;
+              }
+            }
+
+            c2_context.fillRect(xPos*pixSize, yPos*pixSize, pixSize, pixSize);
+            if(drawStroke)
+              c2_context.strokeRect(xPos*pixSize, yPos*pixSize, pixSize, pixSize);
         }
+
+        let drawBlockH=5;
+        for (let i = 0; i < c2.height; i += drawBlockH)
+        {
+          
+          c2_context.fillStyle = heatMapColorforValue((c2.height-i)/c2.height);
+          c2_context.fillRect(c2.width-heatMapBarW, i, heatMapBarW, drawBlockH);
+        }
+        
+        c2_context.fillStyle = "#FFF";
+        c2_context.fillText(high, c2.width-10,20);
+        c2_context.fillText(low, c2.width-10,c2.height-10);
+
     };
     function ws_start()
     {
@@ -309,34 +358,23 @@
       connection.close();
     }
 
-    function flipY() {
-        if (startY === 0) {
-          moveY = -10;
-          startY = 630+moveY;
-        } else {
-          startY = 0;
-          moveY = 10;
-        }
+    function rotate() {
+      rotateIdx=(rotateIdx+1)%4;
     }
     function flipX() {
-        if (startX === 0) {
-            startX = 460;
-            moveX = -10;
-        } else {
-            startX = 0;
-            moveX = 10;
-        }
+      xflip=!xflip;
     }
     </script>
 </head>
 <body>
-    <canvas id='myCanvas' height='470' width='630' style='border:1px solid #d3d3d3;'></canvas>
+    <canvas id='myCanvas' height='480' width='640' style='border:1px solid #d3d3d3;'></canvas>
     <p id='temperature'></p>
-    <button onclick='flipX()'>Flip X</button>
-    <button onclick='flipY()'>Flip Y</button>
+    <button class="cButton" onclick='flipX()'>Flip X</button>
+    <button class="cButton" onclick='rotate()'>ROTATE</button>
     <br/>
     <input type="text" id="input_IP" name="input_IP" value="thermal.local:81">
-    <button onclick='ws_start()'  id="start_btn">start</button>
-    <button onclick='ws_stop()'  id="start_btn">STOP</button>
+    <button class="cButton" onclick='ws_start()'  id="start_btn">START</button>
+    <br/>
+    <button  class="cButton" onclick='ws_stop()'  id="start_btn">STOP</button>
 </body>
 </html>
