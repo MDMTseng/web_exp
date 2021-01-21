@@ -26,6 +26,8 @@
     <script>
     let startX = 0;
     let moveX = 10;
+    let startY = 0;
+    let moveY = 10;
     const positive = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
     const negative = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
 
@@ -291,7 +293,7 @@
         var c2 = document.getElementById('myCanvas');
         var c2_context = c2.getContext('2d');
         let xPos = startX;
-        let yPos = 0;
+        let yPos = startY;
         for (let i = 0; i < tempValues.length; i += 1) {
 
             let value = ((tempValues[i] - low) / (high - low)) * 100;
@@ -303,29 +305,36 @@
             {
               c2_context.fillStyle = heatMapColorforValue(value, low, high);
             }
-            c2_context.fillRect(xPos, yPos, 10, 10);
-            yPos += 10;
+            c2_context.fillRect(yPos, xPos, 10, 10);
+            yPos += moveY;
             if (i > 0 && (i + 1) % 63 === 0) {
                 xPos += moveX;
-                yPos = 0;
+                yPos = startY;
             }
         }
     };
 
     function flip() {
-        if (startX === 0) {
-            startX = 460;
-            moveX = -10;
+        // if (startX === 0) {
+        //     startX = 460;
+        //     moveX = -10;
+        // } else {
+        //     startX = 0;
+        //     moveX = 10;
+        // }
+        if (startY === 0) {
+          moveY = -10;
+          startY = 630+moveY;
         } else {
-            startX = 0;
-            moveX = 10;
+          startY = 0;
+          moveY = 10;
         }
     }
     </script>
 </head>
 
 <body>
-    <canvas id='myCanvas' width='470' height='630' style='border:1px solid #d3d3d3;'></canvas>
+    <canvas id='myCanvas' height='470' width='630' style='border:1px solid #d3d3d3;'></canvas>
     <p id='temperature'></p>
     <button class='flipButton' onclick='flip()'>Flip Camera</button>
     <p id='ip'></p>
