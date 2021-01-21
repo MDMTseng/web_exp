@@ -24,89 +24,13 @@
         }
     </style>
     <script>
+    var warn_audio = new Audio('warningSFX.mp3');
     let startX = 0;
     let moveX = 10;
     let startY = 0;
     let moveY = 10;
     const positive = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
     const negative = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
-
-    function decompress(compressed, rowLength) {
-        const parts = compressed.split('.');
-        let output = [];
-        let result = parts[1];
-        // First character is the decimal precision
-        let decimals = parseInt(parts[0].substring(0, 1));
-        // Second character is the accuracy, e.g. 5 would round to nearest 5
-        let accuracy = parseInt(parts[0].substring(1, 2));
-        // Value of the first reading
-        let start = parseInt(parts[0].substring(2, parts[0].length));
-        start = start / Math.pow(10.0, decimals);
-        // Push the first reading into the result array
-        output.push(start);
-
-        // bbbb is compressed to 4b, the numeric value 4 is stored in the multiplier variable
-        let multiplier = '';
-        let counter = 1;
-
-        // Use Aa-Zz values to calculate the diff from the previous value
-        for (let n = 0; n < result.length; n += 1) {
-            let found = false;
-            let indexOfItem = positive.indexOf(result[n]);
-
-            if (indexOfItem === -1) {
-                indexOfItem = negative.indexOf(result[n]);
-                if (indexOfItem >= 0) {
-                    found = true;
-                    indexOfItem = -indexOfItem;
-                }
-            } else {
-                found = true;
-            }
-            // If not Aa-Zz it will be a numeric multiplier
-            if (!found) {
-                multiplier += result[n];
-            } else {
-                // Found a Aa-Zz match! Calculate the numeric value.
-                if (Math.abs(indexOfItem) > 0) {
-                    indexOfItem = indexOfItem * accuracy;
-                }
-                indexOfItem = indexOfItem / Math.pow(10, decimals);
-
-                multiplier = parseInt(multiplier);
-
-                if (counter > 1 && counter % rowLength === 0) {
-                    start = output[counter - rowLength];
-                }
-                counter += 1;
-                // console.log(result[n], indexOfItem);
-                start += indexOfItem;
-                output.push(parseFloat(parseFloat(start).toFixed(decimals)));
-
-                // Turn 4b into bbbb
-                while (multiplier > 1) {
-
-                    if (counter > 1 && counter % rowLength === 0) {
-                        start = output[counter - rowLength];
-                    }
-                    counter += 1;
-                    start += indexOfItem;
-                    output.push(parseFloat(parseFloat(start).toFixed(decimals)));
-                    multiplier -= 1;
-                }
-                multiplier = '';
-
-            }
-
-        }
-        return output;
-    }
-    
-    function decompress2(compressed) {
-        
-        return new Int16Array(compressed,768);
-    }
-    
     
     function heatMapColorforValue(value, avgLowTemp, avgHighTemp) {
         let h;
@@ -158,6 +82,29 @@
         return result;
     }
 
+    function ConvertNumber(number, format){
+      var tail=format.lastIndexOf('.');number=number.toString();
+      tail=tail>-1?format.substr(tail):'';
+      if(tail.length>0){if(tail.charAt(1)=='#'){
+          tail=number.substr(number.lastIndexOf('.'),tail.length);
+      }}
+      number=number.replace(/\..*|[^0-9]/g,'').split('');
+      format=format.replace(/\..*/g,'').split('');
+      for(var i=format.length-1;i>-1;i--){
+          if(format[i]=='#'){format[i]=number.pop()}
+      }
+      return number.join('')+format.join('')+tail;
+    }
+
+    // Examples
+    // ConvertNumber(1234,'#,###') === 1,234
+    // ConvertNumber(1234,'#,###.00') === 1,234.00
+    // ConvertNumber(1234,',###.00') === 1,234.00
+    // ConvertNumber(1234.4575,',###.##') === 1,234.45
+    // ConvertNumber(1234567890.4575,',###,###,###.##') === 1,234,567,890.45
+    // ConvertNumber(123.4575,',#,#.##') === 1,2,3.45
+    // ConvertNumber(123456.4575,'-#-#.##') === 1234-5-6.45
+    // ConvertNumber(1234567.4575,' ## ###.##') === 12 34 567.45
     function interpolateData(input, rowLength) {
         const output = [];
         let rowNum = 1;
@@ -195,33 +142,23 @@
         }
         return output;
     }
-    let url = 'ws://thermal.local:81';
-    if (typeof ipAddress !== 'undefined') {
-        // Android doesn't support mDNS, use ipAddress if provided
-        url = 'ws://' + ipAddress + ':81';
-    }
-    let connection = new WebSocket(url);
 
-    connection.binaryType = "arraybuffer";
-    connection.onopen = function () {
-        connection.send('Ping'); // Send the message 'Ping' to the server
-    };
-    // Log errors
-    connection.onerror = function (error) {
-        console.log('WebSocket Error ' + error);
-    };
+
     let avgHighTemp = 0;
     let avgLowTemp = 0;
     let highTarget = -100;
     let lowTarget = 200;
     let high = -100;
     let low = 200;
-    let counter = 30;
+    let frame_counter = 0;
+    let connection=undefined;
+    let warnFrame=undefined;
     // Log messages from the server
-    connection.onmessage = function (e) {
+    let onmessage = function (e) {
         if (e.data.length < 100) {
             return;
         }
+        frame_counter += 1;
         const values_raw = new Int16Array(e.data);
 
         const values=values_raw.map(v=>((v/100.0)*36.5/30));
@@ -233,21 +170,21 @@
         for (let w = sortedValues.length - 3; w > sortedValues.length - 10; w -= 1) {
             avgHighTemp += sortedValues[w];
         }
-
         avgHighTemp = avgHighTemp / 7;
+
         avgLowTemp = 0;
         for (let w = 4; w < 24; w += 1) {
             avgLowTemp += sortedValues[w];
         }
         avgLowTemp = avgLowTemp / 20;
-        if (counter >= 20) {
+        if (frame_counter >= 20) {
             let avgHighTempC = avgHighTemp;
             avgHighTempC = parseInt(avgHighTempC * 10) / 10;
             
             let avgTempC = parseInt(avgTemp * 10) / 10;
             let avgLowTempC = avgLowTemp;
             avgLowTempC = parseInt(avgLowTempC * 10) / 10;
-            document.getElementById('temperature').innerText = 'High: ' + avgHighTempC + ' C | Low: ' + avgLowTempC + ' C | AVG: ' + avgTempC + ' C';
+            document.getElementById('temperature').innerText = 'High: ' + avgHighTempC + ' C | Low: ' + avgLowTempC + ' C \n AVG: ' + avgTempC + ' C';
             highTarget = -100;
             lowTarget = 200;
             //console.log(JSON.stringify(tempValues));
@@ -264,10 +201,9 @@
             }
             // high += 2;
             lowTarget += 1;
-            counter = 0;
-            return;
+            // counter = 0;
+            // return;
         }
-        counter += 1;
         // if (Math.abs(low - avgLowTemp) < 1.5) {
         //     // do nothing
         // } else if (low === 200) {
@@ -297,15 +233,33 @@
         for (let i = 0; i < tempValues.length; i += 1) {
 
             let value = ((tempValues[i] - low) / (high - low)) * 100;
+            let drawStroke=false;
             if(tempValues[i]>37.5)
             {
-              c2_context.fillStyle ="#0F0";
+              
+              if(warnFrame===undefined)
+              {
+                warnFrame=frame_counter;
+                warn_audio.play();
+              }
+              c2_context.strokeStyle = "#00FFFF";
+              drawStroke=true;
             }
             else
             {
-              c2_context.fillStyle = heatMapColorforValue(value, low, high);
+              if(warnFrame!==undefined)
+              {
+                if(frame_counter-warnFrame>40)
+                {
+                  warnFrame=undefined;
+                  warn_audio.pause();
+                }
+              }
             }
+            c2_context.fillStyle = heatMapColorforValue(value, low, high);
             c2_context.fillRect(yPos, xPos, 10, 10);
+            if(drawStroke)
+              c2_context.strokeRect(yPos, xPos, 10, 10);
             yPos += moveY;
             if (i > 0 && (i + 1) % 63 === 0) {
                 xPos += moveX;
@@ -313,15 +267,49 @@
             }
         }
     };
+    function ws_start()
+    {
+      if(connection!==undefined)
+      {
+        ws_stop();
+      }
+      let input_IP_DOM=document.getElementById('input_IP');
+      let start_btn_DOM=document.getElementById('start_btn');
+      input_IP_DOM.disabled=true;
+      start_btn_DOM.disabled=true;
+      let url = 'ws://'+input_IP_DOM.value;
 
-    function flip() {
-        // if (startX === 0) {
-        //     startX = 460;
-        //     moveX = -10;
-        // } else {
-        //     startX = 0;
-        //     moveX = 10;
-        // }
+      connection= new WebSocket(url);
+
+      connection.binaryType = "arraybuffer";
+      connection.onopen = function () {
+        connection.send('Ping'); // Send the message 'Ping' to the server
+      };
+      connection.onclose = function(event) {
+        input_IP_DOM.disabled=
+        start_btn_DOM.disabled=false;
+        connection=undefined;
+      };
+      // Log errors
+      connection.onerror = function (error) {
+        console.log('WebSocket Error ' + error);
+        input_IP_DOM.disabled=
+        start_btn_DOM.disabled=false;
+        connection=undefined;
+      };
+      connection.onmessage=onmessage;
+    }
+    function ws_stop()
+    {
+      
+      if(connection==undefined)
+      {
+        return;
+      }
+      connection.close();
+    }
+
+    function flipY() {
         if (startY === 0) {
           moveY = -10;
           startY = 630+moveY;
@@ -330,19 +318,25 @@
           moveY = 10;
         }
     }
+    function flipX() {
+        if (startX === 0) {
+            startX = 460;
+            moveX = -10;
+        } else {
+            startX = 0;
+            moveX = 10;
+        }
+    }
     </script>
 </head>
-
 <body>
     <canvas id='myCanvas' height='470' width='630' style='border:1px solid #d3d3d3;'></canvas>
     <p id='temperature'></p>
-    <button class='flipButton' onclick='flip()'>Flip Camera</button>
-    <p id='ip'></p>
+    <button onclick='flipX()'>Flip X</button>
+    <button onclick='flipY()'>Flip Y</button>
+    <br/>
+    <input type="text" id="input_IP" name="input_IP" value="thermal.local:81">
+    <button onclick='ws_start()'  id="start_btn">start</button>
+    <button onclick='ws_stop()'  id="start_btn">STOP</button>
 </body>
-<script>
-    if (typeof ipAddress !== 'undefined') {
-        // the variable is defined
-        document.getElementById('ip').innerText = 'IP: ' + ipAddress;
-    }
-</script>
 </html>
