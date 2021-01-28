@@ -14,9 +14,14 @@
         .cButton {
             width: 80px;
             height: 20px;
-            margin:2px;
+            margin:1px;
         }
 
+        .sButton {
+            width: 10px;
+            height: 20px;
+            margin:0px;
+        }
         #temperature {
             padding: 5px;
             width: 470px;
@@ -38,6 +43,16 @@
       // }
     </script>
     <script>
+
+
+    function ls_setCamUrl(url)
+    {
+      return localStorage.setItem("ThermalCamUrl",url);
+    }
+    function ls_getCamUrl()
+    {
+      return localStorage.getItem("ThermalCamUrl");
+    }
     var warn_audio = new Audio('warningSFX.mp3');
 
     function heatMapColorforValue(value,low=0,middle=0.5,high=1){
@@ -64,6 +79,20 @@
       return "hsl(" + h + ","+s+"%,"+l+"%)";
     }
 
+    function url_setDefault()
+    {
+      
+      let input_IP_DOM=document.getElementById('input_IP');
+      input_IP_DOM.value="thermal.local:81";
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      url_setDefault();
+      let input_IP_DOM=document.getElementById('input_IP');
+      let url = ls_getCamUrl();
+      if(url!==undefined && url.length >0)
+        input_IP_DOM.value = url;
+
+    }, false);
 
     function heatMapColorforValue2(value, avgLowTemp, avgHighTemp) {
         if(value>avgHighTemp)value=avgHighTemp;
@@ -426,7 +455,8 @@
 
       connection.binaryType = "arraybuffer";
       connection.onopen = function () {
-        connection.send('Ping'); // Send the message 'Ping' to the server
+        // connection.send('Ping'); // Send the message 'Ping' to the server
+        ls_setCamUrl(input_IP_DOM.value);
       };
       connection.onclose = function(event) {
         input_IP_DOM.disabled=
@@ -476,6 +506,7 @@
       
       document.getElementById('sound_btn').innerText = "SOUND:"+(warnAudioPlay?"ON":"OFF");
     }
+
     </script>
 </head>
 <body>
@@ -489,7 +520,9 @@
     <button  class="cButton" onclick='FilterMode_toggle()'  id="filterMode_btn">Filter:0</button>
     <br/>
     <input type="text" id="input_IP" name="input_IP" value="thermal.local:81">
+    <button class="sButton" onclick='url_setDefault()'  id="setUrlDefault_btn">X</button>
     <button class="cButton" onclick='ws_start()'  id="start_btn">START</button>
     v0.0.1
 </body>
+
 </html>
